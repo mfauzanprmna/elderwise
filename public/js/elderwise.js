@@ -1,0 +1,1 @@
+document.addEventListener('DOMContentLoaded',()=>{document.querySelectorAll('.circle-progress[data-value]').forEach(el=>{el.style.setProperty('--p',`${el.dataset.value}%`)});setTimeout(()=>document.querySelectorAll('.toast').forEach(x=>x.remove()),4500);});
