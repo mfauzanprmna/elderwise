@@ -3,9 +3,11 @@ namespace App\Http\Controllers;
 
 use App\Models\Certificate;
 use App\Models\CertificateSetting;
-use App\Models\Module;
+use App\Models\Lesson;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Contracts\Cache\LockTimeoutException;
 
 class CertificateController extends Controller
 {
@@ -15,8 +17,7 @@ class CertificateController extends Controller
      */
     private function assertEligible(): void
     {
-        $modules = Module::with('lessons')->get();
-        $total = $modules->sum(fn($m) => $m->lessons->count());
+        $total = Lesson::count();
         $completed = Auth::user()->lessonProgress()->whereNotNull('completed_at')->count();
 
         abort_unless($total > 0 && $completed >= $total, 403, 'Selesaikan semua materi terlebih dahulu untuk membuat sertifikat.');
@@ -31,13 +32,17 @@ class CertificateController extends Controller
 
         $user = Auth::user();
 
-        $certificate = $user->certificate ?? Certificate::create([
-            'user_id' => $user->id,
-            'number' => $this->generateNumber(),
-            'issued_at' => now(),
-        ]);
+        try {
+            $certificate = $user->certificate ?? Certificate::issueFor($user);
+        } catch (LockTimeoutException $e) {
+            return redirect()->route('dashboard')->with('error', 'Sertifikat belum bisa dibuat karena sistem sedang sibuk. Silakan coba lagi sebentar lagi.');
+        }
 
-        return redirect()->route('dashboard')->with('success', 'Sertifikat berhasil dibuat! Silakan unduh di bawah.');
+        if ($certificate->isApproved()) {
+            return redirect()->route('dashboard')->with('success', 'Sertifikat Anda sudah disetujui dan siap diunduh.');
+        }
+
+        return redirect()->route('dashboard')->with('success', 'Permohonan sertifikat terkirim. Menunggu persetujuan admin untuk bisa diunduh.');
     }
 
     /**
@@ -50,25 +55,27 @@ class CertificateController extends Controller
         $user = Auth::user();
         $certificate = $user->certificate;
         abort_unless($certificate, 404, 'Sertifikat belum dibuat.');
+        abort_unless($certificate->isApproved(), 403, 'Sertifikat belum disetujui admin.');
 
         $setting = CertificateSetting::current();
 
         $backgroundPath = $setting->background_path
-            ? storage_path('app/public/' . $setting->background_path)
+            ? Storage::disk('public')->path($setting->background_path)
             : null;
 
         $values = [
             'user_name' => $user->name,
             'issued_date' => $certificate->issued_at->translatedFormat('d F Y'),
-            'certificate_number' => $certificate->number,
+            'certificate_number' => $certificate->displayNumber($setting),
             'program_name' => null, // diisi dari field custom bila ada, atau default field
         ];
 
         $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('certificates.pdf', [
             'setting' => $setting,
             'backgroundPath' => $backgroundPath,
-            'fields' => $setting->fields ?? [],
+            'fields' => $setting->fillFields($setting->fields ?? [], (int) $certificate->issued_at->year, (int) ($certificate->sequence ?? $certificate->id)),
             'values' => $values,
+            'transcript' => CertificateSetting::transcript(),
         ]);
 
         // Ukuran kertas mengikuti rasio gambar background bila tersedia (landscape umumnya).
@@ -77,12 +84,5 @@ class CertificateController extends Controller
         $filename = 'Sertifikat-' . Str::slug($user->name) . '.pdf';
 
         return $pdf->download($filename);
-    }
-
-    private function generateNumber(): string
-    {
-        $year = now()->format('Y');
-        $seq = Certificate::whereYear('created_at', now()->year)->count() + 1;
-        return sprintf('EW/%s/%04d', $year, $seq);
     }
 }

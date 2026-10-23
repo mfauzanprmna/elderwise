@@ -6,8 +6,13 @@
     "build": "vite build"
   },
   "devDependencies": {
+    "@tailwindcss/vite": "^4.3.3",
     "@vitejs/plugin-basic-ssl": "^2.1.0",
     "laravel-vite-plugin": "^2.0.0",
+    "tailwindcss": "^4.3.3",
     "vite": "^7.0.0"
+  },
+  "dependencies": {
+    "ckeditor5": "^49.0.0"
   }
 }

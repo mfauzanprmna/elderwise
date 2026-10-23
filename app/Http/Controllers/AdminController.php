@@ -13,7 +13,7 @@ class AdminController extends Controller
         return view('admin.dashboard', [
             'moduleCount' => Module::count(),
             'lessonCount' => Lesson::count(),
-            'userCount' => User::count(),
+            'userCount' => User::where('role', '!=', 'admin')->count(),
             'adminCount' => User::where('role', 'admin')->count(),
             'modules' => Module::withCount('lessons')->orderBy('sort_order')->get(),
         ]);

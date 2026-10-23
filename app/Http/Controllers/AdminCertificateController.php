@@ -1,7 +1,9 @@
 <?php
 namespace App\Http\Controllers;
 
+use App\Models\Certificate;
 use App\Models\CertificateSetting;
+use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -14,11 +16,18 @@ class AdminCertificateController extends Controller
      */
     public static function sampleValues(): array
     {
+        // Nomor contoh = nomor yang akan didapat peserta berikutnya, memakai format di Pengaturan Sertifikat.
+        $setting = CertificateSetting::current();
+        $year = (int) now()->year;
+        $sequence = Certificate::nextSequence($setting, $year);
+
         return [
             'user_name' => 'Dr. Ahmad Wijaya Kusuma, M.Kom.',
             'issued_date' => now()->translatedFormat('d F Y'),
-            'certificate_number' => 'EW/' . now()->format('Y') . '/0001',
+            'certificate_number' => CertificateSetting::fillTemplate($setting->number_template ?: CertificateSetting::DEFAULT_NUMBER_TEMPLATE, $year, $sequence),
             'program_name' => 'ElderWiSE Digital Confidence Journey',
+            'sample_year' => $year,
+            'sample_sequence' => $sequence,
         ];
     }
 
@@ -43,14 +52,17 @@ class AdminCertificateController extends Controller
         $setting = CertificateSetting::current();
 
         $backgroundPath = $setting->background_path
-            ? storage_path('app/public/' . $setting->background_path)
+            ? Storage::disk('public')->path($setting->background_path)
             : null;
+
+        $sample = self::sampleValues();
 
         $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('certificates.pdf', [
             'setting' => $setting,
             'backgroundPath' => $backgroundPath,
-            'fields' => $setting->fields ?? [],
-            'values' => self::sampleValues(),
+            'fields' => $setting->fillFields($setting->fields ?? [], $sample['sample_year'], $sample['sample_sequence']),
+            'values' => $sample,
+            'transcript' => CertificateSetting::transcript(),
         ]);
         $pdf->setPaper('a4', 'landscape');
 
@@ -73,7 +85,7 @@ class AdminCertificateController extends Controller
         }
 
         $path = $request->file('background')->store('certificates', 'public');
-        [$width, $height] = getimagesize(storage_path('app/public/' . $path));
+        [$width, $height] = getimagesize(Storage::disk('public')->path($path));
 
         $setting->update([
             'background_path' => $path,
@@ -82,6 +94,50 @@ class AdminCertificateController extends Controller
         ]);
 
         return redirect()->route('admin.certificate.edit')->with('success', 'Gambar latar sertifikat berhasil diperbarui.');
+    }
+
+    /**
+     * Simpan format nomor sertifikat, mis. "Elderwise/{TAHUN}/{URUT}".
+     * {TAHUN} dan {URUT} diisi otomatis saat peserta mengunduh sertifikatnya.
+     */
+    public function saveNumber(Request $request)
+    {
+        $data = $request->validate([
+            'number_template' => ['required', 'string', 'max:120', function (string $attribute, mixed $value, Closure $fail) {
+                if ($message = CertificateSetting::templateError((string) $value)) {
+                    $fail($message);
+                }
+            }],
+            'number_reset_yearly' => ['nullable', 'boolean'],
+        ]);
+
+        $setting = CertificateSetting::current();
+        $setting->update([
+            'number_template' => trim($data['number_template']),
+            'number_reset_yearly' => $request->boolean('number_reset_yearly'),
+        ]);
+
+        $example = self::sampleValues()['certificate_number'];
+
+        return redirect()->route('admin.certificate.edit')
+            ->with('success', "Format nomor sertifikat disimpan. Nomor untuk persetujuan berikutnya: {$example}");
+    }
+
+    public function approve(Request $request, 
+        \App\Models\User $user
+    )
+    {
+        $certificate = $user->certificate;
+
+        abort_unless($certificate, 404, 'Peserta belum membuat permohonan sertifikat.');
+
+        try {
+            Certificate::approveForUser($user);
+        } catch (\RuntimeException $e) {
+            return redirect()->back()->with('error', $e->getMessage());
+        }
+
+        return redirect()->back()->with('success', 'Sertifikat ' . $user->name . ' berhasil disetujui dan dibuka untuk diunduh.');
     }
 
     /**

@@ -1,5 +1,14 @@
 <?php
 
+// dompdf hanya boleh membaca file di dalam "chroot". Gambar upload (mis. latar sertifikat) tersimpan di folder uploads;
+// jika folder itu berada di luar folder aplikasi (umum di hosting: public_html terpisah dari folder aplikasi),
+// folder tersebut ditambahkan ke daftar chroot agar gambarnya tetap bisa dibaca.
+$dompdfChroot = [realpath(base_path())];
+$dompdfUploads = realpath(env('UPLOADS_PATH') ?: public_path('uploads'));
+if ($dompdfUploads && ! str_starts_with($dompdfUploads . DIRECTORY_SEPARATOR, $dompdfChroot[0] . DIRECTORY_SEPARATOR)) {
+    $dompdfChroot[] = $dompdfUploads;
+}
+
 return [
 
     /*
@@ -78,7 +87,7 @@ return [
          * direct class use like:
          * $dompdf = new DOMPDF();  $dompdf->load_html($htmldata); $dompdf->render(); $pdfdata = $dompdf->output();
          */
-        'chroot' => realpath(base_path()),
+        'chroot' => count($dompdfChroot) === 1 ? $dompdfChroot[0] : $dompdfChroot,
 
         /**
          * Protocol whitelist

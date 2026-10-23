@@ -18,10 +18,15 @@ class DatabaseSeeder extends Seeder
             [6,'My Digital Confidence','Look How Far I’ve Come!','Refleksi dan perayaan pencapaian.','ElderWiSE Achievement'],
         ];
         foreach($modules as $i=>$m){ Module::updateOrCreate(['number'=>$m[0]],['title'=>$m[1],'slogan'=>$m[2],'description'=>$m[3],'badge'=>$m[4],'sort_order'=>$i+1]); }
+        $this->call(SiteSettingSeeder::class);
         $this->seedModule1(Module::where('number',1)->first());
         $this->seedModule2(Module::where('number',2)->first());
         $this->seedModule3(Module::where('number',3)->first());
-        if(!User::where('email','admin@elderwise.test')->exists()) User::create(['name'=>'ElderWiSE Admin','email'=>'admin@elderwise.test','password'=>'password123','role'=>'admin']);
+        if(!User::where('email','admin@elderwise.test')->exists()) {
+            $admin = new User(['name'=>'ElderWiSE Admin','email'=>'admin@elderwise.test','password'=>'password123','role'=>'admin']);
+            // Email contoh ini tidak bisa menerima pesan, jadi langsung ditandai terverifikasi.
+            $admin->forceFill(['email_verified_at'=>now()])->save();
+        }
     }
     private function saveLessons(Module $module, array $rows): void
     {

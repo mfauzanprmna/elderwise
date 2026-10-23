@@ -1,0 +1,154 @@
+/* ================================================================
+   ElderWiSE — komponen antarmuka bersama: notifikasi, animasi loading, menu profil.
+   File statis (tidak butuh `npm run build`). Warna mengikuti token di resources/css/app.css:
+   navy #0f2f52 · blue #0b57c4 · blue-dark #083f8f · blue-tint #e7f0ff · ink #16233a · muted #41546c
+   line #c9d6e6 · green #146c43 · amber #8a5300 · red #a4231c
+   Prinsip: jelas dan tenang. Animasi singkat, tidak menutupi bacaan, dan mati bila perangkat meminta "reduce motion".
+   ================================================================ */
+
+/* ---------- Spinner ---------- */
+.ew-spinner {
+    display: inline-block; width: 1.15em; height: 1.15em; flex-shrink: 0;
+    border: .2em solid currentColor; border-right-color: transparent; border-radius: 50%;
+    vertical-align: -0.2em; animation: ew-spin .8s linear infinite;
+}
+.ew-spinner-lg { width: 3.2rem; height: 3.2rem; border-width: .32rem; color: #0b57c4; }
+@keyframes ew-spin { to { transform: rotate(360deg); } }
+
+/* ---------- Bilah progres di atas halaman (saat berpindah halaman / mengirim form) ---------- */
+#ew-topbar {
+    position: fixed; top: 0; left: 0; right: 0; height: 5px; z-index: 300;
+    background: #0b57c4; transform-origin: 0 50%; transform: scaleX(0); opacity: 0;
+    pointer-events: none; box-shadow: 0 0 10px rgba(11, 87, 196, .55);
+}
+#ew-topbar.is-running { opacity: 1; transform: scaleX(.86); transition: transform 12s cubic-bezier(.08, .6, .2, 1); }
+#ew-topbar.is-done { opacity: 0; transform: scaleX(1); transition: transform .2s ease, opacity .35s ease .15s; }
+
+/* ---------- Lapisan "sedang memproses" (muncul bila prosesnya lebih dari ~0,6 detik) ---------- */
+#ew-overlay {
+    position: fixed; inset: 0; z-index: 290; display: none; align-items: center; justify-content: center;
+    background: rgba(244, 247, 251, .78); padding: 1.25rem; cursor: progress;
+}
+#ew-overlay.is-visible { display: flex; animation: ew-fade .2s ease; }
+.ew-overlay-card {
+    display: grid; justify-items: center; gap: 1rem; text-align: center; max-width: 22rem;
+    padding: 1.75rem 2rem; background: #fff; border: 2px solid #c9d6e6; border-radius: 1.2rem;
+    box-shadow: 0 18px 44px rgba(15, 47, 82, .18);
+}
+.ew-overlay-card p { margin: 0; color: #0f2f52; font-weight: 800; font-size: 1.15rem; line-height: 1.4; }
+.ew-overlay-card small { display: block; margin-top: .25rem; color: #41546c; font-weight: 400; font-size: .95rem; }
+@keyframes ew-fade { from { opacity: 0; } to { opacity: 1; } }
+
+/* ---------- Tombol saat memproses ---------- */
+.is-busy { pointer-events: none; cursor: progress; opacity: .85; }
+.is-busy .ew-spinner { margin-right: .55rem; }
+
+/* ---------- Notifikasi (toast) ---------- */
+#ew-toasts {
+    position: fixed; top: 98px; right: 20px; z-index: 280;
+    width: min(26rem, calc(100vw - 2rem)); display: grid; gap: .75rem; pointer-events: none;
+}
+.ew-toast {
+    pointer-events: auto; display: grid; grid-template-columns: auto 1fr auto; align-items: start; gap: .85rem;
+    padding: .95rem .85rem .95rem 1rem; background: #fff; color: #16233a;
+    border: 2px solid #c9d6e6; border-left-width: 8px; border-radius: 1rem;
+    box-shadow: 0 14px 34px rgba(15, 47, 82, .18);
+    animation: ew-toast-in .28s ease both;
+}
+.ew-toast.is-leaving { animation: ew-toast-out .22s ease both; }
+.ew-toast-icon { width: 1.7rem; height: 1.7rem; margin-top: .1rem; flex-shrink: 0; }
+.ew-toast-title { display: block; font-size: 1.05rem; font-weight: 800; line-height: 1.3; }
+.ew-toast-msg { margin: .2rem 0 0; font-size: 1rem; line-height: 1.5; color: #16233a; }
+.ew-toast-msg + .ew-toast-msg, .ew-toast-list li + li { margin-top: .3rem; }
+.ew-toast-list { margin: .25rem 0 0; padding-left: 1.1rem; font-size: 1rem; line-height: 1.5; }
+.ew-toast-close {
+    width: 2.75rem; height: 2.75rem; margin: -.4rem -.2rem 0 0; display: grid; place-items: center; flex-shrink: 0;
+    border: 0; border-radius: .7rem; background: transparent; color: #41546c; font-size: 1.6rem; line-height: 1; cursor: pointer;
+}
+.ew-toast-close:hover { background: #eef4fc; color: #0f2f52; }
+.ew-toast-close:focus-visible { outline: 3px solid #083f8f; outline-offset: 1px; }
+
+.ew-toast-success { border-color: #9fd4b5; border-left-color: #146c43; background: #f2fbf5; }
+.ew-toast-success .ew-toast-title, .ew-toast-success .ew-toast-icon { color: #146c43; }
+.ew-toast-error { border-color: #f1b3ae; border-left-color: #a4231c; background: #fff5f4; }
+.ew-toast-error .ew-toast-title, .ew-toast-error .ew-toast-icon { color: #a4231c; }
+.ew-toast-warning { border-color: #f0d3a0; border-left-color: #b46a00; background: #fffaf0; }
+.ew-toast-warning .ew-toast-title, .ew-toast-warning .ew-toast-icon { color: #8a5300; }
+.ew-toast-info { border-color: #b9d2f7; border-left-color: #0b57c4; background: #f3f8ff; }
+.ew-toast-info .ew-toast-title, .ew-toast-info .ew-toast-icon { color: #083f8f; }
+
+@keyframes ew-toast-in { from { opacity: 0; transform: translateX(16px); } to { opacity: 1; transform: none; } }
+@keyframes ew-toast-out { from { opacity: 1; transform: none; } to { opacity: 0; transform: translateX(16px); } }
+
+@media (max-width: 767px) {
+    #ew-toasts { top: 84px; right: 1rem; left: 1rem; width: auto; }
+}
+
+/* ---------- Menu profil di navbar ---------- */
+.ew-profile { position: relative; }
+.ew-profile > summary { list-style: none; }
+.ew-profile > summary::-webkit-details-marker { display: none; }
+.ew-profile-btn {
+    display: flex; align-items: center; gap: .65rem; cursor: pointer; user-select: none;
+    padding: .3rem .7rem .3rem .3rem; border: 2px solid #c9d6e6; border-radius: 999px; background: #fff; color: #0f2f52;
+    transition: border-color .15s ease, background-color .15s ease;
+}
+.ew-profile-btn:hover, .ew-profile[open] > .ew-profile-btn { border-color: #0b57c4; background: #f3f8ff; }
+.ew-profile-btn:focus-visible { outline: 3px solid #083f8f; outline-offset: 2px; }
+.ew-profile-name { display: none; max-width: 11rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 800; font-size: 1rem; }
+.ew-chevron { width: 1rem; height: 1rem; color: #41546c; transition: transform .2s ease; }
+.ew-profile[open] .ew-chevron { transform: rotate(180deg); }
+@media (min-width: 768px) { .ew-profile-name { display: inline; } }
+
+.ew-avatar {
+    position: relative; display: inline-grid; place-items: center; flex-shrink: 0; overflow: hidden;
+    width: 2.7rem; height: 2.7rem; border-radius: 50%; background: #0b57c4; color: #fff;
+    font-weight: 800; font-size: 1rem; line-height: 1;
+}
+.ew-avatar img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; border-radius: 50%; background: #e7f0ff; }
+.ew-avatar-lg { width: 6rem; height: 6rem; font-size: 2rem; }
+
+.ew-menu {
+    position: absolute; right: 0; top: calc(100% + .6rem); z-index: 60; width: 17.5rem; max-width: calc(100vw - 2rem);
+    background: #fff; border: 2px solid #c9d6e6; border-radius: 1rem; padding: .5rem;
+    box-shadow: 0 18px 44px rgba(15, 47, 82, .18); animation: ew-fade .15s ease;
+}
+.ew-menu-head { padding: .6rem .75rem .75rem; margin-bottom: .35rem; border-bottom: 2px solid #e3eaf3; min-width: 0; }
+.ew-menu-head b { display: block; color: #0f2f52; font-size: 1.05rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ew-menu-head span { display: block; color: #41546c; font-size: .9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ew-menu a, .ew-menu button {
+    display: flex; align-items: center; gap: .75rem; width: 100%; box-sizing: border-box; text-align: left;
+    padding: .75rem; border: 0; border-radius: .7rem; background: transparent; cursor: pointer;
+    color: #0f2f52; font: inherit; font-weight: 700; font-size: 1.02rem; text-decoration: none;
+}
+.ew-menu a:hover, .ew-menu button:hover { background: #eef4fc; }
+.ew-menu a[aria-current="page"] { background: #e7f0ff; color: #083f8f; }
+.ew-menu a:focus-visible, .ew-menu button:focus-visible { outline: 3px solid #083f8f; outline-offset: -2px; }
+.ew-menu svg { width: 1.3rem; height: 1.3rem; flex-shrink: 0; }
+.ew-menu hr { border: 0; border-top: 2px solid #e3eaf3; margin: .4rem 0; }
+.ew-menu .ew-menu-danger { color: #a4231c; }
+.ew-menu .ew-menu-danger:hover { background: #fdecea; }
+
+/* ---------- Halaman profil: tab & pratinjau foto ---------- */
+.ew-tabs { display: flex; flex-wrap: wrap; gap: .6rem; margin-top: 1.5rem; }
+.ew-tabs a {
+    padding: .65rem 1.15rem; border: 2px solid #c9d6e6; border-radius: 999px; background: #fff;
+    color: #0f2f52; font-weight: 800; font-size: 1.02rem; text-decoration: none;
+}
+.ew-tabs a:hover { border-color: #0b57c4; }
+.ew-tabs a[aria-current="page"] { background: #0b57c4; border-color: #0b57c4; color: #fff; }
+.ew-photo-row { display: flex; flex-wrap: wrap; align-items: center; gap: 1.5rem; }
+.ew-photo-row > div { min-width: 0; flex: 1 1 16rem; }
+.ew-hint { margin: .4rem 0 0; color: #41546c; font-size: .95rem; line-height: 1.5; font-weight: 400; }
+
+/* Navbar publik: jarak & sentuhan lebih nyaman */
+.ew-nav-actions { display: flex; align-items: center; gap: .6rem; flex-shrink: 0; }
+
+/* Aksesibilitas: hormati preferensi "kurangi gerakan" */
+@media (prefers-reduced-motion: reduce) {
+    .ew-toast, .ew-toast.is-leaving, #ew-overlay.is-visible, .ew-menu { animation: none; }
+    #ew-topbar.is-running { transform: scaleX(.6); transition: none; }
+    #ew-topbar.is-done { transition: opacity .2s ease; transform: scaleX(1); }
+    .ew-spinner { animation-duration: 2.4s; }
+    .ew-chevron { transition: none; }
+}

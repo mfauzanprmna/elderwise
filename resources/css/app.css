@@ -1,1 +1,188 @@
-@import '../../public/css/elderwise.css';
+@import "tailwindcss";
+
+/* ================================================================
+   ELDERWISE — DESIGN TOKENS (Tailwind v4 theme)
+   Audiens: dosen / pendidik usia 45+ dengan literasi digital dasar.
+   Prinsip: kontras tinggi, teks besar & tegas, target klik besar,
+   hierarki sederhana, minim gangguan visual, tanpa animasi liar.
+   ================================================================ */
+@theme {
+  --font-sans: "Atkinson Hyperlegible", "Segoe UI", Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+
+  --color-navy: #0f2f52;
+  --color-navy-dark: #0a2038;
+  --color-blue: #0b57c4;
+  --color-blue-dark: #083f8f;
+  --color-blue-tint: #e7f0ff;
+  --color-ink: #16233a;
+  --color-muted: #41546c;
+  --color-line: #c9d6e6;
+  --color-line-strong: #9fb3cc;
+  --color-bg: #f4f7fb;
+  --color-green: #146c43;
+  --color-green-tint: #e3f6ea;
+  --color-amber: #8a5300;
+  --color-amber-tint: #fff2df;
+  --color-red: #a4231c;
+  --color-red-tint: #fdecea;
+
+  --shadow-elder: 0 10px 28px rgba(15, 47, 82, 0.10);
+  --shadow-elder-lg: 0 14px 34px rgba(11, 87, 196, 0.25);
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+  }
+  body {
+    @apply bg-bg text-ink font-sans text-[19px] leading-[1.7];
+  }
+  h1, h2, h3 {
+    @apply text-navy font-extrabold tracking-tight;
+  }
+  /* Fokus keyboard harus SANGAT jelas — banyak dosen menavigasi dengan Tab */
+  a:focus-visible, button:focus-visible, input:focus-visible,
+  select:focus-visible, textarea:focus-visible, [tabindex]:focus-visible {
+    @apply outline outline-3 outline-blue-dark outline-offset-2 rounded-md;
+  }
+}
+
+@layer components {
+  .skip-link {
+    @apply absolute -left-[9999px] top-auto bg-navy text-white px-5 py-3.5 rounded-br-xl font-bold text-base z-[200] no-underline;
+  }
+  .skip-link:focus {
+    @apply left-0 top-0;
+  }
+
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-6 py-4 font-bold text-lg leading-tight cursor-pointer transition-colors min-h-14 no-underline border-2 border-transparent;
+  }
+  .btn-primary {
+    @apply bg-blue text-white shadow-[0_8px_20px_rgba(11,87,196,0.28)];
+  }
+  .btn-primary:hover {
+    @apply bg-blue-dark;
+  }
+  .btn-ghost {
+    @apply bg-white text-navy border-line-strong;
+  }
+  .btn-ghost:hover {
+    @apply bg-blue-tint/40 border-blue;
+  }
+  .btn-sm {
+    @apply px-4.5 py-2.5 text-base min-h-11;
+  }
+  .btn-danger {
+    @apply border-2 border-red bg-red-tint text-red font-bold;
+  }
+
+  .eyebrow {
+    @apply text-sm tracking-wide text-blue-dark font-extrabold;
+  }
+
+  .card {
+    @apply bg-white border-2 border-line rounded-2xl shadow-elder;
+  }
+
+  .form-input {
+    @apply w-full text-lg px-4 py-3.5 border-2 border-line-strong rounded-xl outline-none bg-white min-h-[54px];
+  }
+  .form-input:focus {
+    @apply border-blue ring-4 ring-blue/15;
+  }
+  .form-label {
+    @apply grid gap-2 font-bold text-lg text-navy;
+  }
+}
+
+/* ================================================================
+   ISI MATERI (hasil CKEditor 5)
+   Tailwind meratakan gaya heading/daftar/tabel, jadi isi materi diberi gaya sendiri.
+   Aturan yang sama dipakai di editor admin (.ck-content) dan halaman peserta (.lesson-prose)
+   supaya tampilannya persis sama.
+   ================================================================ */
+.lesson-prose, .ck-content { color: var(--color-ink); overflow-wrap: anywhere; }
+.lesson-prose > :first-child, .ck-content > :first-child { margin-top: 0; }
+.lesson-prose p, .ck-content p { margin: 0 0 1em; }
+.lesson-prose h2, .ck-content h2 { font-size: 1.55em; font-weight: 800; line-height: 1.3; color: var(--color-navy); margin: 1.5em 0 .55em; }
+.lesson-prose h3, .ck-content h3 { font-size: 1.3em; font-weight: 800; line-height: 1.35; color: var(--color-navy); margin: 1.35em 0 .5em; }
+.lesson-prose h4, .ck-content h4 { font-size: 1.1em; font-weight: 800; line-height: 1.4; color: var(--color-blue-dark); margin: 1.2em 0 .4em; }
+.lesson-prose strong, .ck-content strong { font-weight: 800; }
+.lesson-prose em, .ck-content em { font-style: italic; }
+.lesson-prose a, .ck-content a { color: var(--color-blue-dark); text-decoration: underline; text-underline-offset: 3px; font-weight: 600; }
+.lesson-prose ul, .ck-content ul { list-style: disc; padding-left: 1.6em; margin: 0 0 1em; }
+.lesson-prose ol, .ck-content ol { list-style: decimal; padding-left: 1.7em; margin: 0 0 1em; }
+.lesson-prose li, .ck-content li { margin: .3em 0; }
+.lesson-prose li > ul, .lesson-prose li > ol, .ck-content li > ul, .ck-content li > ol { margin: .3em 0 .3em; }
+.lesson-prose blockquote, .ck-content blockquote {
+    margin: 1.3em 0; padding: .8em 1.2em; border-left: 5px solid var(--color-blue);
+    background: var(--color-blue-tint); border-radius: 0 .75rem .75rem 0; color: var(--color-navy); font-style: normal;
+}
+.lesson-prose hr, .ck-content hr { border: 0; border-top: 2px solid var(--color-line); margin: 1.8em 0; height: 0; background: none; }
+.lesson-prose figure.table, .ck-content figure.table { margin: 1.3em 0; overflow-x: auto; display: block; width: 100%; }
+.lesson-prose table, .ck-content table { width: 100%; border-collapse: collapse; }
+.lesson-prose th, .lesson-prose td, .ck-content th, .ck-content td {
+    border: 1px solid var(--color-line-strong); padding: .6em .85em; vertical-align: top; text-align: left; min-width: 3em;
+}
+.lesson-prose th, .ck-content th { background: #eef4fc; font-weight: 800; color: var(--color-navy); }
+.lesson-prose mark, .ck-content mark { background: none; color: inherit; padding: 0 .1em; border-radius: .2em; }
+.lesson-prose .marker-yellow, .ck-content .marker-yellow { background: #fff3a3; }
+.lesson-prose .marker-green, .ck-content .marker-green { background: #bdf2c8; }
+.lesson-prose .marker-pink, .ck-content .marker-pink { background: #ffd1e0; }
+.lesson-prose .marker-blue, .ck-content .marker-blue { background: #cfe4ff; }
+
+/* Tampilan kolom editor di admin: lebih besar dan jelas untuk pengguna usia 45+ */
+.lesson-editor-wrap {
+    --ck-font-size-base: 16px;
+    --ck-ui-component-min-height: 2.6em;
+    --ck-border-radius: 12px;
+    --ck-color-focus-border: var(--color-blue);
+}
+.lesson-editor-wrap .ck.ck-toolbar { border: 2px solid var(--color-line-strong); border-bottom: 0; background: #f7faff; padding: .35rem .5rem; }
+.lesson-editor-wrap .ck.ck-editor__main > .ck-editor__editable { border: 2px solid var(--color-line-strong) !important; background: #fff; }
+.lesson-editor-wrap .ck.ck-editor__main > .ck-editor__editable.ck-focused { border-color: var(--color-blue) !important; box-shadow: 0 0 0 4px rgba(11, 87, 196, .15); }
+.lesson-editor-wrap .ck-editor__editable_inline { min-height: 380px; padding: 1.2rem 1.5rem; font-size: 19px; line-height: 1.75; }
+
+/* Sidebar admin dapat diringkas menjadi rail ikon di desktop. */
+@media (min-width: 768px) {
+  #admin-sidebar {
+    width: 284px;
+    transition: width .2s ease;
+  }
+  .admin-layout.is-sidebar-collapsed #admin-sidebar {
+    width: 76px;
+  }
+  .admin-layout.is-sidebar-collapsed .admin-sidebar-brand,
+  .admin-layout.is-sidebar-collapsed .admin-sidebar-label {
+    display: none;
+  }
+  .admin-layout.is-sidebar-collapsed #admin-sidebar > div:first-child {
+    justify-content: center;
+    padding-left: .75rem;
+    padding-right: .75rem;
+  }
+  .admin-layout.is-sidebar-collapsed #admin-sidebar nav {
+    padding-left: .75rem;
+    padding-right: .75rem;
+  }
+  .admin-layout.is-sidebar-collapsed .admin-sidebar-link,
+  .admin-layout.is-sidebar-collapsed #admin-sidebar > div:last-child > a,
+  .admin-layout.is-sidebar-collapsed #admin-sidebar > div:last-child > form > button {
+    justify-content: center;
+    padding-left: .5rem;
+    padding-right: .5rem;
+  }
+  .admin-layout.is-sidebar-collapsed #admin-sidebar > div:last-child > a:first-child {
+    padding-top: .5rem;
+    padding-bottom: .5rem;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    #admin-sidebar { transition: none; }
+  }
+}

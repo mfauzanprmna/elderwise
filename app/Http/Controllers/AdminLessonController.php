@@ -9,6 +9,23 @@ use Illuminate\Support\Facades\Storage;
 
 class AdminLessonController extends Controller
 {
+    public function uploadImage(Request $request)
+    {
+        $validated = $request->validate([
+            'upload' => ['required', 'image', 'mimes:jpg,jpeg,png,webp,gif', 'max:2048'],
+        ]);
+
+        $path = $validated['upload']->store('materi', 'public');
+
+        if (! $path) {
+            abort(500, 'Gambar materi gagal disimpan.');
+        }
+
+        return response()->json([
+            'url' => Storage::disk('public')->url($path),
+        ]);
+    }
+
     public function index(Request $request)
     {
         $modules = Module::orderBy('sort_order')->get();
@@ -125,7 +142,11 @@ class AdminLessonController extends Controller
             'content' => ['nullable', 'string'],
             'pdf' => ['nullable', 'file', 'mimes:pdf', 'max:20480'],
             'quiz_enabled' => ['nullable', 'boolean'],
-            'quiz_json' => ['nullable', 'string'],
+            'quiz' => ['nullable', 'array'],
+            'quiz.*.question' => ['nullable', 'string', 'max:500'],
+            'quiz.*.options' => ['nullable', 'array'],
+            'quiz.*.options.*' => ['nullable', 'string', 'max:300'],
+            'quiz.*.answer' => ['nullable'],
         ]);
 
         if ($data['type'] === 'pdf' && !$request->hasFile('pdf')) {
@@ -137,17 +158,31 @@ class AdminLessonController extends Controller
 
         $quiz = null;
         if ($request->boolean('quiz_enabled')) {
-            if (!filled($data['quiz_json'] ?? null)) {
-                return back()->withErrors(['quiz_json' => 'Quiz diaktifkan, tetapi belum ada soal.'])->withInput()->throwResponse();
+            $rawQuiz = $data['quiz'] ?? [];
+            $cleanQuiz = [];
+
+            foreach ($rawQuiz as $q) {
+                $question = trim($q['question'] ?? '');
+                $options = array_values(array_filter(array_map('trim', $q['options'] ?? []), fn($o) => $o !== ''));
+                if ($question === '' || count($options) < 2) {
+                    continue; // lewati soal kosong/tidak lengkap, jangan gagalkan submit
+                }
+                $answer = (int) ($q['answer'] ?? 0);
+                if ($answer >= count($options)) {
+                    $answer = 0;
+                }
+                $cleanQuiz[] = ['question' => $question, 'options' => $options, 'answer' => $answer];
             }
-            $quiz = json_decode($data['quiz_json'], true);
-            if (json_last_error() !== JSON_ERROR_NONE || !is_array($quiz)) {
-                return back()->withErrors(['quiz_json' => 'Format JSON quiz tidak valid.'])->withInput()->throwResponse();
+
+            if (empty($cleanQuiz)) {
+                return back()->withErrors(['quiz' => 'Quiz diaktifkan, tetapi belum ada soal yang lengkap. Setiap soal butuh pertanyaan dan minimal 2 pilihan jawaban.'])->withInput()->throwResponse();
             }
+
+            $quiz = $cleanQuiz;
         }
 
         $data['quiz'] = $quiz;
-        unset($data['quiz_json'], $data['pdf'], $data['quiz_enabled'], $data['existing_pdf_path']);
+        unset($data['pdf'], $data['quiz_enabled'], $data['existing_pdf_path']);
 
         return $data;
     }
